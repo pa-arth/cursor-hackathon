@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+# Keep training data + suite for the slither FT POC; drop watch dumps.
+artifacts/*
+!artifacts/slither-data/
+!artifacts/slither-suite/
+artifacts/slither-watch/
+*.egg-info/
+
+dist/

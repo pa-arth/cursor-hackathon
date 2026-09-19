@@ -1,0 +1,11 @@
+device=mps trainable params=9.3M
+158 training requests (holdout=[]), questions by type {'choice': 158}
+ep0 step 10/80 loss 8.850 kl 0.000 anchor 0.000 3.885s/rec
+ep0 step 20/80 loss 4.388 kl 0.000 anchor 0.000 4.072s/rec
+ep0 step 30/80 loss 6.756 kl 0.000 anchor 0.000 4.833s/rec
+ep0 step 40/80 loss 2.721 kl 0.000 anchor 0.000 4.973s/rec
+ep1 step 50/80 loss 2.247 kl 0.000 anchor 0.000 4.771s/rec
+ep1 step 60/80 loss 1.907 kl 0.000 anchor 0.000 4.419s/rec
+ep1 step 70/80 loss 1.383 kl 0.000 anchor 0.000 4.184s/rec
+ep1 step 80/80 loss 1.507 kl 0.000 anchor 0.000 4.139s/rec
+saved runs/slither-ft-v2

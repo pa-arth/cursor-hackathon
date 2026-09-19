@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "seed": 0,
+  "holdout_sources": [],
+  "trainable_sources": [
+    "slither-human"
+  ],
+  "eval_only_sources": [],
+  "base_revisions": {
+    "Qwen/Qwen2.5-0.5B": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+    "Qwen/Qwen3-0.6B-Base": "da87bfb608c14b7cf20ba1ce41287e8de496c0cd"
+  },
+  "files": {
+    "train.jsonl": {
+      "sha256": "6b1eca6390a94da20b4c27780a6844736eb854ac48c5d849df764fe7d3cbba44",
+      "records": 158
+    },
+    "calibration.jsonl": {
+      "sha256": "7845281c8f4cee76f88ecd61426991e3407d5a6472ff5c0cfeff417c5d150679",
+      "records": 20
+    },
+    "development.jsonl": {
+      "sha256": "6c5adb25c654c8725be3e4a77fb0ec9a986df959e7e77926b9a8521699da0c09",
+      "records": 20
+    }
+  },
+  "context": {
+    "task": "slither-aim",
+    "notes": "Prefer slither-human (gold mouse labels); teacher/agent are silver/weak."
+  }
+}
