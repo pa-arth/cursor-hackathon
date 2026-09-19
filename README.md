@@ -4,6 +4,7 @@ Shared hackathon workspace.
 
 | path | project |
 |---|---|
-| [`slitherio/`](slitherio/) | Slither.io agent: hosted Jev vs local fine-tuned Kev, human gold recording, FT loop |
+| [`slitherio/`](slitherio/) | Slither.io: sensors, human gold FT, hosted Jev vs local Kev (`:8009`) |
+| [`browser-agent/`](browser-agent/) | Stock jev-ultrafast (flights / generic goals): hosted Jev vs local Kev (`:8010`) |
 
-See [`slitherio/README.md`](slitherio/README.md) to run that stack.
+Each folder has its own README.
