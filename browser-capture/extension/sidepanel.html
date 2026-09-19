@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Browser Capture</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header>
+      <p class="brand">Browser Capture</p>
+      <p class="sub">Element-grounded trajectories for local fine-tuning</p>
+    </header>
+
+    <section class="status-row">
+      <span id="collector" class="pill">collector…</span>
+      <span id="recState" class="pill muted">idle</span>
+    </section>
+
+    <label class="field">
+      <span>Intent</span>
+      <textarea
+        id="intent"
+        rows="3"
+        placeholder="What are you trying to do on this site?"
+      ></textarea>
+    </label>
+
+    <label class="field">
+      <span>Host allowlist <em>(optional, comma-separated)</em></span>
+      <input id="allowlist" type="text" placeholder="google.com, github.com" />
+    </label>
+
+    <div class="actions">
+      <button id="start" class="primary">Record</button>
+      <button id="pause" disabled>Pause</button>
+      <button id="done" class="danger" disabled>Done</button>
+    </div>
+
+    <label class="check">
+      <input id="success" type="checkbox" checked />
+      Mark episode successful on Done
+    </label>
+
+    <section class="meta">
+      <div><span>Episode</span><code id="episode">—</code></div>
+      <div><span>Steps</span><strong id="steps">0</strong></div>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+
+    <footer>
+      <button id="ping" class="linkish">Check collector</button>
+      <span>http://127.0.0.1:8787</span>
+    </footer>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

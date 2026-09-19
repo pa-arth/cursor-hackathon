@@ -1,0 +1,5 @@
+data/episodes/*/
+!data/episodes/.gitkeep
+__pycache__/
+*.pyc
+.DS_Store
