@@ -54,9 +54,12 @@ uv run --env-file .env python examples/flights.py --model jev
 ```
 
 ```bash
-# B) Local FT Kev — after a run dir exists under kev/runs/
+# B) Local Kev — use the Hub base until you have trained weights
 cd browser-agent/kev
-uv run --extra serve python -m kev.serve --run runs/browser-agent-ft-v1 --port 8010
+uv run --extra serve python -m kev.serve --run jaredpalmer/kev-0.5b --port 8010
+
+# After train.py writes a folder (must exist on disk):
+# uv run --extra serve python -m kev.serve --run runs/browser-agent-ft-v1 --port 8010
 ```
 
 ```bash

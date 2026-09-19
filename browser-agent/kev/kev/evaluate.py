@@ -25,9 +25,22 @@ def ece(conf, correct, bins=10):
     return float(e)
 
 
+def _looks_like_hub_id(run):
+    """Hub ids are org/name. Local paths are runs/..., ./foo, absolute, etc."""
+    parts = str(run).split("/")
+    return len(parts) == 2 and all(p and p not in {".", ".."} and not p.startswith("runs") for p in parts)
+
+
 def resolve_run(run):
     """Local run directory, or a Hub repo id like jaredpalmer/kev-0.5b (downloaded to the HF cache)."""
-    if os.path.isdir(run): return run
+    if os.path.isdir(run):
+        return run
+    if not _looks_like_hub_id(run):
+        raise FileNotFoundError(
+            f"No local checkpoint at {run!r}. Train one first, e.g.\n"
+            f"  cd browser-agent/kev && uv run python ../kev-finetune/train.py --out {run}\n"
+            f"Or serve the base model:  uv run --extra serve python -m kev.serve --run jaredpalmer/kev-0.5b --port 8010"
+        )
     from huggingface_hub import snapshot_download
     return snapshot_download(run, allow_patterns=["*.json", "*.safetensors", "*.pt", "*.txt", "*.jinja"])
 
