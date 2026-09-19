@@ -6,11 +6,21 @@ Lives at `browser-agent/browser-capture/` (sibling of `jev-ultrafast/` and `kev/
 
 You browse normally. The Chrome extension maps clicks / fills / selects / scrolls onto the same indexed action table as [jev-ultrafast](../jev-ultrafast) (`snapshot.js`) and appends steps to a **local** collector. Intent defaults to **auto-suggest on Done** via your LLM API key (encrypted at rest).
 
-Collected data feeds the FT loop for `kev/runs/browser-agent-ft/` — it does **not** overwrite harness or Kev source.
+The episode files under `data/episodes/` are the trajectories **Kev was fine-tuned on** for this track (`kev/runs/browser-agent-ft/`). Capture more with the extension; it does **not** overwrite harness or Kev source.
+
+
+## Fine-tuning data
+
+Kev for `browser-agent` was fine-tuned on the trajectories in [`data/episodes/`](data/episodes/). Each episode directory has:
+
+- `meta.json` — goal/intent, success, timestamps
+- `steps.jsonl` — element-grounded observation → action steps
+
+Use `GET http://127.0.0.1:8787/v1/dataset` (collector running) to pack them into training examples.
 
 ## Privacy
 
-- **Episode trajectories never leave this machine** (`data/episodes/`).
+- **Episode trajectories are stored under** `data/episodes/` (checked-in FT set + any local captures).
 - Intent suggestion sends only a short step summary (labels / fill text / URLs) to the model provider you configure.
 - The API key is stored in the **macOS Keychain** when available, otherwise AES-GCM encrypted under a local `0600` master key in `data/secrets/` (gitignored).
 
@@ -24,7 +34,7 @@ browser-agent/
     extension/               # Chrome MV3 side panel + content script
     collector/server.py      # Loopback HTTP (:8787)
     collector/credential_store.py
-    data/episodes/           # meta.json + steps.jsonl per episode (local only)
+    data/episodes/           # meta.json + steps.jsonl — Kev FT training trajectories
     data/secrets/            # encrypted key / settings (local only)
 ```
 
