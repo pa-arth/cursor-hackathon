@@ -22,13 +22,23 @@
     return false;
   });
 
+  function ruleHost(rule) {
+    const r = String(rule || "").trim().toLowerCase();
+    if (!r) return "";
+    try {
+      if (r.includes("://")) return new URL(r).hostname;
+    } catch (_) {}
+    // Strip paths / query if pasted without scheme.
+    return r.split("/")[0].split("?")[0];
+  }
+
   function hostAllowed() {
     if (!session.allowlist || !session.allowlist.length) return true;
-    const host = location.hostname;
+    const host = location.hostname.toLowerCase();
     return session.allowlist.some((rule) => {
-      const r = String(rule).trim().toLowerCase();
-      if (!r) return false;
-      return host === r || host.endsWith("." + r);
+      const allowed = ruleHost(rule);
+      if (!allowed) return false;
+      return host === allowed || host.endsWith("." + allowed) || allowed.endsWith("." + host);
     });
   }
 

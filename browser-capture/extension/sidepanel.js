@@ -1,9 +1,18 @@
 const $ = (id) => document.getElementById(id);
 
+function ruleHost(rule) {
+  const r = String(rule || "").trim().toLowerCase();
+  if (!r) return "";
+  try {
+    if (r.includes("://")) return new URL(r).hostname;
+  } catch (_) {}
+  return r.split("/")[0].split("?")[0];
+}
+
 function parseAllowlist(raw) {
   return String(raw || "")
     .split(",")
-    .map((s) => s.trim().toLowerCase())
+    .map(ruleHost)
     .filter(Boolean);
 }
 
