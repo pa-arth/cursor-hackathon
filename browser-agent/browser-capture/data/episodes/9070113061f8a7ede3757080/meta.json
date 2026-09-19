@@ -1,0 +1,14 @@
+{
+  "id": "9070113061f8a7ede3757080",
+  "intent": "Find the Google Flights price alert and archive it after starring",
+  "intent_source": "human",
+  "source": "human_extension",
+  "start_url": "https://mail.google.com/mail/u/0/#inbox",
+  "allowlist": [],
+  "status": "complete",
+  "success": true,
+  "step_count": 5,
+  "started_at": "2026-09-16T20:41:09.279269+00:00",
+  "ended_at": "2026-09-16T20:41:19.710288+00:00",
+  "notes": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "87bf346b0c0d5a94206718cc",
+  "intent": "Search for the Z\u00fcrich to London price drop email, star it, then archive",
+  "intent_source": "human",
+  "source": "human_extension",
+  "start_url": "https://mail.google.com/mail/u/0/#inbox",
+  "allowlist": [],
+  "status": "complete",
+  "success": true,
+  "step_count": 5,
+  "started_at": "2026-09-17T04:56:08.279269+00:00",
+  "ended_at": "2026-09-17T04:56:18.573523+00:00",
+  "notes": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "eff0b20e4971e659790b2da4",
+  "intent": "Star and archive the London booking email from Travel Support",
+  "intent_source": "human",
+  "source": "human_extension",
+  "start_url": "https://mail.google.com/mail/u/0/#inbox",
+  "allowlist": [],
+  "status": "complete",
+  "success": true,
+  "step_count": 5,
+  "started_at": "2026-09-16T22:12:34.279269+00:00",
+  "ended_at": "2026-09-16T22:12:44.006694+00:00",
+  "notes": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "83afa1d9eed36c1ac463ff57",
+  "intent": "Find the Stripe receipt, star it, archive when done",
+  "intent_source": "human",
+  "source": "human_extension",
+  "start_url": "https://mail.google.com/mail/u/0/#inbox",
+  "allowlist": [],
+  "status": "complete",
+  "success": true,
+  "step_count": 5,
+  "started_at": "2026-09-16T19:57:05.279269+00:00",
+  "ended_at": "2026-09-16T19:57:14.851507+00:00",
+  "notes": null
+}
