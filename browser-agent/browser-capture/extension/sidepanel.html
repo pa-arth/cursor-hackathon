@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Browser Capture</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header>
+      <p class="brand">Browser Capture</p>
+      <p class="sub">Local trajectories · intent suggested on Done</p>
+    </header>
+
+    <section class="status-row">
+      <span id="collector" class="pill">collector…</span>
+      <span id="recState" class="pill muted">idle</span>
+      <span id="keyState" class="pill muted">no api key</span>
+    </section>
+
+    <label class="field">
+      <span>Intent <em>(optional — auto-suggested on Done)</em></span>
+      <textarea
+        id="intent"
+        rows="3"
+        placeholder="Leave blank to auto-suggest from your actions"
+      ></textarea>
+    </label>
+
+    <label class="field">
+      <span>Host allowlist <em>(optional)</em></span>
+      <input id="allowlist" type="text" placeholder="google.com (or leave blank)" />
+    </label>
+
+    <div class="actions">
+      <button id="start" class="primary">Record</button>
+      <button id="pause" disabled>Pause</button>
+      <button id="done" class="danger" disabled>Done</button>
+    </div>
+
+    <label class="check">
+      <input id="success" type="checkbox" checked />
+      Mark episode successful on Done
+    </label>
+
+    <details class="settings" id="settings">
+      <summary>LLM settings (local keystore)</summary>
+      <p class="privacy">
+        Episode data stays on this machine. Only a short step summary is sent to your
+        model provider when suggesting intent. The API key is stored encrypted in macOS
+        Keychain (or an encrypted local file).
+      </p>
+      <label class="field">
+        <span>API key</span>
+        <input id="apiKey" type="password" autocomplete="off" placeholder="sk-… or OpenRouter key" />
+      </label>
+      <label class="field">
+        <span>Base URL</span>
+        <input id="baseUrl" type="text" placeholder="https://openrouter.ai/api/v1" />
+      </label>
+      <label class="field">
+        <span>Model</span>
+        <input id="model" type="text" placeholder="openai/gpt-4o-mini" />
+      </label>
+      <div class="actions tight">
+        <button id="saveKey" class="primary">Save key</button>
+        <button id="clearKey">Clear key</button>
+      </div>
+      <p id="keyHint" class="hint"></p>
+    </details>
+
+    <section class="meta">
+      <div><span>Episode</span><code id="episode">—</code></div>
+      <div><span>Steps</span><strong id="steps">0</strong></div>
+      <div><span>Intent source</span><strong id="intentSource">—</strong></div>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+
+    <footer>
+      <button id="ping" class="linkish">Check collector</button>
+      <span>http://127.0.0.1:8787</span>
+    </footer>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

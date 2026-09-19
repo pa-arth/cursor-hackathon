@@ -1,14 +1,16 @@
 # browser-agent
 
-Stock browser harness + a **full second copy of Kev**, separate from [`../slitherio/`](../slitherio/).
+Stock browser harness + a **full second copy of Kev** + **human trajectory capture**, separate from [`../slitherio/`](../slitherio/).
 
 | path | role |
 |---|---|
-| `jev-ultrafast/` | Upstream jev-ultrafast (`main`) + `--model jev\|kev` switch (flights / generic goals) |
+| `jev-ultrafast/` | Upstream jev-ultrafast (`main`) + `--model jev\|kev` (flights / generic goals) |
 | `kev/` | Full Kev train/serve tree for **this** track |
-| `kev/runs/browser-agent-ft/` | **Drop the FT checkpoint here** (empty until teammate pushes weights) |
+| `kev/runs/browser-agent-ft/` | **Drop the FT checkpoint here** (empty until trained) |
+| `browser-capture/` | Chrome extension + local collector for real-user gold trajectories |
 
-Default local Kev port for this track: **8010** (slitherio uses **8009**).
+Default local Kev port for this track: **8010** (slitherio uses **8009**).  
+Capture collector port: **8787**.
 
 ## Setup
 
@@ -21,6 +23,19 @@ cd ../kev
 uv sync
 uv sync --extra serve
 ```
+
+## Capture real-user data (gold)
+
+See [`browser-capture/README.md`](browser-capture/README.md).
+
+```bash
+cd browser-agent/browser-capture
+python3 collector/server.py
+# Load unpacked: browser-agent/browser-capture/extension
+curl -s http://127.0.0.1:8787/v1/dataset
+```
+
+Episodes stay in `browser-capture/data/episodes/` (gitignored). That export is what you turn into a Kev training suite for `kev/runs/browser-agent-ft/`.
 
 ## Compare: hosted Jev vs local Kev
 
