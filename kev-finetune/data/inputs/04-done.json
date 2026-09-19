@@ -1,0 +1,33 @@
+{
+  "source": "browser",
+  "state": {
+    "page": {
+      "url": "https://www.google.com/travel/flights/search?hl=en",
+      "title": "Google Flights",
+      "text": "One way. Zurich to London. Sun, Sep 20. Select flight. Several matching results."
+    },
+    "elements": [
+      {"index": "2", "label": "Where from?", "value": "Zurich", "operations": ["TYPE_TEXT", "CLICK"]},
+      {"index": "3", "label": "Where to?", "value": "London", "operations": ["TYPE_TEXT", "CLICK"]},
+      {"index": "12", "label": "Select flight Swiss 123 Sunday, September 20", "value": "", "operations": ["CLICK"]}
+    ],
+    "recent_actions": [
+      {"action": "Search", "kind": "click", "text": null, "page_changed": true}
+    ]
+  },
+  "questions": {
+    "operation": {
+      "type": "choice",
+      "instructions": {
+        "goal": "Find one-way flights from Zurich to London on September 20, 2026, for one adult in economy. Stop when matching flight options are visible. Do not select or book a flight.",
+        "rules": "DONE requires visible evidence that ALL requirements are satisfied. Do not select a flight."
+      },
+      "criteria": {
+        "CLICK": "Click an element.",
+        "TYPE_TEXT": "Enter text in an editable field.",
+        "DONE": "Every requirement is visibly satisfied.",
+        "WAIT": "Wait for the page to update."
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "source": "browser",
+  "state": {
+    "page": {
+      "url": "https://www.google.com/travel/flights?hl=en",
+      "title": "Google Flights",
+      "text": "Where from? Zurich. Suggestions: Zurich, Switzerland. London, United Kingdom."
+    },
+    "elements": [
+      {"index": "2", "label": "Where from?", "value": "Zurich", "operations": ["TYPE_TEXT", "CLICK"]},
+      {"index": "4", "label": "Zurich, Switzerland", "value": "", "operations": ["CLICK"]},
+      {"index": "5", "label": "London, United Kingdom", "value": "", "operations": ["CLICK"]}
+    ],
+    "recent_actions": [
+      {"action": "Where from?", "kind": "fill", "text": "Zurich", "page_changed": true}
+    ]
+  },
+  "questions": {
+    "operation": {
+      "type": "choice",
+      "instructions": {
+        "goal": "Find one-way flights from Zurich to London on September 20, 2026.",
+        "rules": "A typed query still needs its matching autocomplete suggestion selected."
+      },
+      "criteria": {
+        "CLICK": "Click an element.",
+        "TYPE_TEXT": "Enter text in an editable field.",
+        "DONE": "Every requirement is visibly satisfied.",
+        "WAIT": "Wait for the page to update."
+      }
+    },
+    "click_target": {
+      "type": "choice",
+      "instructions": {
+        "goal": "Find one-way flights from Zurich to London on September 20, 2026.",
+        "operation": "CLICK"
+      },
+      "criteria": {
+        "2": {"element": "[2] Where from?", "current_value": "Zurich"},
+        "4": {"element": "[4] Zurich, Switzerland"},
+        "5": {"element": "[5] London, United Kingdom"}
+      }
+    }
+  }
+}

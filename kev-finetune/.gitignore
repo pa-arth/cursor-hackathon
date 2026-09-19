@@ -1,0 +1,6 @@
+runs/
+weights/original/
+weights/finetuned/
+__pycache__/
+.venv/
+*.pyc

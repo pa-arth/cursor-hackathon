@@ -1,0 +1,48 @@
+{
+  "source": "browser",
+  "state": {
+    "page": {
+      "url": "https://www.google.com/travel/flights?hl=en",
+      "title": "Google Flights",
+      "text": "One way. Where from? Zurich. Where to? London. Departure Sun, Sep 20. Search."
+    },
+    "elements": [
+      {"index": "1", "label": "Change ticket type", "value": "One way", "operations": ["CLICK"]},
+      {"index": "2", "label": "Where from?", "value": "Zurich", "operations": ["TYPE_TEXT", "CLICK"]},
+      {"index": "3", "label": "Where to?", "value": "London", "operations": ["TYPE_TEXT", "CLICK"]},
+      {"index": "8", "label": "Search", "value": "", "operations": ["CLICK"]}
+    ],
+    "recent_actions": [
+      {"action": "One way", "kind": "click", "text": null, "page_changed": true},
+      {"action": "Where from?", "kind": "fill", "text": "Zurich", "page_changed": true},
+      {"action": "Where to?", "kind": "fill", "text": "London", "page_changed": true},
+      {"action": "Sunday, September 20, 2026", "kind": "click", "text": null, "page_changed": true}
+    ]
+  },
+  "questions": {
+    "operation": {
+      "type": "choice",
+      "instructions": {
+        "goal": "Find one-way flights from Zurich to London on September 20, 2026. Stop when matching flight options are visible.",
+        "rules": "If Search is visible and the required fields are ready, CLICK it immediately."
+      },
+      "criteria": {
+        "CLICK": "Click an element.",
+        "TYPE_TEXT": "Enter text in an editable field.",
+        "DONE": "Every requirement is visibly satisfied.",
+        "WAIT": "Wait for the page to update."
+      }
+    },
+    "click_target": {
+      "type": "choice",
+      "instructions": {
+        "goal": "Find one-way flights from Zurich to London on September 20, 2026.",
+        "operation": "CLICK"
+      },
+      "criteria": {
+        "1": {"element": "[1] Change ticket type", "current_value": "One way"},
+        "8": {"element": "[8] Search"}
+      }
+    }
+  }
+}

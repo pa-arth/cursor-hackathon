@@ -1,0 +1,42 @@
+{
+  "source": "browser",
+  "state": {
+    "page": {
+      "url": "https://www.google.com/travel/flights?hl=en",
+      "title": "Google Flights",
+      "text": "Google Flights. Round trip. Where from? San Francisco. Where to? empty."
+    },
+    "elements": [
+      {"index": "1", "label": "Change ticket type", "value": "Round trip", "operations": ["CLICK"]},
+      {"index": "2", "label": "Where from?", "value": "San Francisco", "operations": ["TYPE_TEXT", "CLICK"]},
+      {"index": "3", "label": "Where to?", "value": "", "operations": ["TYPE_TEXT", "CLICK"]}
+    ],
+    "recent_actions": []
+  },
+  "questions": {
+    "operation": {
+      "type": "choice",
+      "instructions": {
+        "goal": "Find one-way flights from Zurich to London on September 20, 2026.",
+        "rules": "Advance the goal from the current page. Do not type into a field that already has the requested value."
+      },
+      "criteria": {
+        "CLICK": "Click an element.",
+        "TYPE_TEXT": "Enter text in an editable field.",
+        "DONE": "Every requirement is visibly satisfied.",
+        "WAIT": "Wait for the page to update."
+      }
+    },
+    "type_text_target": {
+      "type": "choice",
+      "instructions": {
+        "goal": "Find one-way flights from Zurich to London on September 20, 2026.",
+        "operation": "TYPE_TEXT"
+      },
+      "criteria": {
+        "2": {"element": "[2] Where from?", "current_value": "San Francisco"},
+        "3": {"element": "[3] Where to?", "current_value": ""}
+      }
+    }
+  }
+}
