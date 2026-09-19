@@ -1,0 +1,14 @@
+{
+  "id": "50922edebe9d99fd20f7daca",
+  "intent": "Find Conference Team weekend schedule, star and archive",
+  "intent_source": "human",
+  "source": "human_extension",
+  "start_url": "https://mail.google.com/mail/u/0/#inbox",
+  "allowlist": [],
+  "status": "complete",
+  "success": true,
+  "step_count": 5,
+  "started_at": "2026-09-17T02:17:17.279269+00:00",
+  "ended_at": "2026-09-17T02:17:27.044413+00:00",
+  "notes": null
+}

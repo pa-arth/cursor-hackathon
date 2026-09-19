@@ -1,0 +1,14 @@
+{
+  "id": "9cd40461fd6fa5d92e79f6c5",
+  "intent": "Search inbox for Linear update, star and archive",
+  "intent_source": "human",
+  "source": "human_extension",
+  "start_url": "https://mail.google.com/mail/u/0/#inbox",
+  "allowlist": [],
+  "status": "complete",
+  "success": true,
+  "step_count": 5,
+  "started_at": "2026-09-17T05:30:55.279269+00:00",
+  "ended_at": "2026-09-17T05:31:05.453612+00:00",
+  "notes": null
+}

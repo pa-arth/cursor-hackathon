@@ -1,0 +1,14 @@
+{
+  "id": "cd41e7d071974834b8da56d1",
+  "intent": "Search Notion digest, star the message, archive it",
+  "intent_source": "human",
+  "source": "human_extension",
+  "start_url": "https://mail.google.com/mail/u/0/#inbox",
+  "allowlist": [],
+  "status": "complete",
+  "success": true,
+  "step_count": 5,
+  "started_at": "2026-09-16T20:34:34.279269+00:00",
+  "ended_at": "2026-09-16T20:34:44.599249+00:00",
+  "notes": null
+}

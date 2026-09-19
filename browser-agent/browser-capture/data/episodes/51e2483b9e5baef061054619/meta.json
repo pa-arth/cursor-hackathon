@@ -1,0 +1,14 @@
+{
+  "id": "51e2483b9e5baef061054619",
+  "intent": "Open the GitHub PR email, star it, and archive the conversation",
+  "intent_source": "human",
+  "source": "human_extension",
+  "start_url": "https://mail.google.com/mail/u/0/#inbox",
+  "allowlist": [],
+  "status": "complete",
+  "success": true,
+  "step_count": 5,
+  "started_at": "2026-09-17T03:04:41.279269+00:00",
+  "ended_at": "2026-09-17T03:04:51.209065+00:00",
+  "notes": null
+}
