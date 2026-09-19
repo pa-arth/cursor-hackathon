@@ -2,10 +2,16 @@
 
 Uses jev-ultrafast's action_space() so option keys match live inference
 (indexes like "2", not capture ids like "e4"). Typed strings are dropped;
-Kev only learns operation + target.
+Kev only learns operation + target. Expects sibling ../jev-ultrafast.
 
-  ../kev/.venv/bin/python convert_capture.py
-  ../kev/.venv/bin/python train.py --check
+From browser-agent/kev:
+
+  uv run python ../kev-finetune/convert_capture.py
+  uv run python ../kev-finetune/train.py --check
+
+Or point --src at a /v1/dataset dump:
+
+  uv run python ../kev-finetune/convert_capture.py --src ../browser-capture/data
 """
 
 from __future__ import annotations

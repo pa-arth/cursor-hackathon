@@ -115,4 +115,13 @@ Each `examples[]` row is one supervised step:
 
 Query flags on `/v1/dataset`: `mapped_only` (default true), `success_only` (default false), `complete_only` (default true).
 
-Export → convert to a Kev suite → train into `../kev/runs/browser-agent-ft/` (see parent [`../README.md`](../README.md)).
+Export → convert + train with sibling [`../kev-finetune/`](../kev-finetune/):
+
+```bash
+curl -s http://127.0.0.1:8787/v1/dataset > ../kev-finetune/potential_data/dataset.json
+cd ../kev
+uv run python ../kev-finetune/convert_capture.py
+uv run python ../kev-finetune/train.py --out ../kev/runs/browser-agent-ft-v1
+```
+
+See parent [`../README.md`](../README.md).

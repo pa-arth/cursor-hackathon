@@ -1,12 +1,13 @@
 # browser-agent
 
-Stock browser harness + a **full second copy of Kev** + **human trajectory capture**, separate from [`../slitherio/`](../slitherio/).
+Stock browser harness + a **full second copy of Kev** + **human trajectory capture** + **FT scripts**, separate from [`../slitherio/`](../slitherio/).
 
 | path | role |
 |---|---|
 | `jev-ultrafast/` | Upstream jev-ultrafast (`main`) + `--model jev\|kev` (flights / generic goals) |
 | `kev/` | Full Kev train/serve tree for **this** track |
-| `kev/runs/browser-agent-ft/` | **Drop the FT checkpoint here** (empty until trained) |
+| `kev/runs/browser-agent-ft/` | Placeholder for the served FT checkpoint |
+| `kev-finetune/` | Convert capture dumps + continue-train Kev (`train.py`) |
 | `browser-capture/` | Chrome extension + local collector for real-user gold trajectories |
 
 Default local Kev port for this track: **8010** (slitherio uses **8009**).  
@@ -24,38 +25,25 @@ uv sync
 uv sync --extra serve
 ```
 
-## Fine-tuning data (Kev)
+## Capture gold → convert → train
 
-The trajectories used to fine-tune Kev for this track live in:
-
-```text
-browser-agent/browser-capture/data/episodes/<episode_id>/
-  meta.json      # intent, success, timestamps
-  steps.jsonl    # one observation → action per line
-```
-
-Export the training rows with the local collector:
-
-```bash
-cd browser-agent/browser-capture
-python3 collector/server.py
-curl -s http://127.0.0.1:8787/v1/dataset
-```
-
-That dataset is what feeds `kev/runs/browser-agent-ft/`.
-
-## Capture more real-user data (gold)
-
-See [`browser-capture/README.md`](browser-capture/README.md).
+See [`browser-capture/README.md`](browser-capture/README.md) and [`kev-finetune/README.md`](kev-finetune/README.md).
 
 ```bash
 cd browser-agent/browser-capture
 python3 collector/server.py
 # Load unpacked: browser-agent/browser-capture/extension
-curl -s http://127.0.0.1:8787/v1/dataset
+curl -s http://127.0.0.1:8787/v1/dataset > ../kev-finetune/potential_data/dataset.json
 ```
 
-New episodes also land under `browser-capture/data/episodes/` (additional local runs may be gitignored).
+```bash
+cd browser-agent/kev
+uv run python ../kev-finetune/convert_capture.py
+uv run python ../kev-finetune/train.py --check
+uv run python ../kev-finetune/train.py --out ../kev/runs/browser-agent-ft-v1
+```
+
+Episodes also live in `browser-capture/data/episodes/` (gitignored per-run folders).
 
 ## Compare: hosted Jev vs local Kev
 
@@ -66,9 +54,9 @@ uv run --env-file .env python examples/flights.py --model jev
 ```
 
 ```bash
-# B) Local FT Kev — after weights are in kev/runs/browser-agent-ft/
+# B) Local FT Kev — after a run dir exists under kev/runs/
 cd browser-agent/kev
-uv run --extra serve python -m kev.serve --run runs/browser-agent-ft --port 8010
+uv run --extra serve python -m kev.serve --run runs/browser-agent-ft-v1 --port 8010
 ```
 
 ```bash
@@ -79,17 +67,14 @@ uv run --env-file .env python examples/flights.py --model kev
 
 Same `--model` / `--kev-url` flags on `examples/run.py` and `uv run jev`.
 
-## Teammate: dropping the model
+## Teammate: dropping / serving the model
 
-Put the checkpoint files in:
+Train into a **new** folder (this script refuses overwrite):
 
 ```text
-browser-agent/kev/runs/browser-agent-ft/
+browser-agent/kev/runs/browser-agent-ft-v1/
 ```
 
-Expected files (same as a normal Kev `--out` run): `adapter_model.safetensors`, `adapter_config.json`, `head.pt`, tokenizer files, etc. See `kev/runs/browser-agent-ft/README.md`.
+Expected files: `adapter_model.safetensors`, `adapter_config.json`, `head.pt`, tokenizer files. See `kev/runs/browser-agent-ft/README.md`.
 
-Then update defaults if the port/path changes:
-
-- `jev-ultrafast/jev_ultrafast/model.py` → `DEFAULT_KEV_URL`
-- comments in `jev-ultrafast/.env.example` and this README
+`--init` is `jaredpalmer/kev-0.5b` from the Hub — do not commit a machine-local `weights/original` symlink.

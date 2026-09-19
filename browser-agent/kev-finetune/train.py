@@ -1,16 +1,16 @@
 """Fine-tune Kev on labelled browser decisions.
 
-Not part of jev-ultrafast. Add pairs under data/inputs and data/outputs
-(same filename), then:
+Lives at browser-agent/kev-finetune/. Imports the sibling browser-agent/kev
+checkout (ROOT.parent / "kev"). Add pairs under data/inputs and data/outputs
+(same filename), then from browser-agent/kev:
 
-  ../kev/.venv/bin/python train.py --check
-  ../kev/.venv/bin/python train.py --limit 1 --epochs 1 --accum 1 --out weights/finetuned/smoke
-  ../kev/.venv/bin/python train.py --out weights/finetuned/browser-sft
+  uv run python ../kev-finetune/train.py --check
+  uv run python ../kev-finetune/train.py --limit 1 --epochs 1 --accum 1 --out ../kev-finetune/weights/finetuned/smoke
+  uv run python ../kev-finetune/train.py --out ../kev/runs/browser-agent-ft-v1
 
-Original Kev weights are never overwritten. Hub copy lives in the Hugging Face
-cache; this repo keeps a pointer at weights/original. Fine-tunes go under
-weights/finetuned/.
-
+--init defaults to the Hub id jaredpalmer/kev-0.5b (read-only). --out must be
+a new folder. Fine-tunes for the flights demo should land under
+../kev/runs/browser-agent-ft* and be served on port 8010.
 
 Each input is a TypeSafe /v1/systemone request (state + questions).
 Each output maps question id -> chosen option key. Labels are option
