@@ -1,16 +1,16 @@
 """Team demo / data collection for slither.io.
 
-  # normal demo (Jev plays)
-  uv run --env-file .env python examples/slither_demo.py --unlimited
+  # Hosted Jev (OpenRouter) — needs OPENROUTER_API_KEY in .env
+  uv run --env-file .env python examples/slither_demo.py --model jev --unlimited --no-guardrails
+
+  # Local fine-tuned Kev — start kev.serve first on :8009
+  uv run python examples/slither_demo.py --model kev --unlimited --no-guardrails
 
   # GOLD: you play; we log your mouse aim as Kev labels
   uv run python examples/slither_demo.py --human
 
   # silver: sensor teacher labels
-  uv run --env-file .env python examples/slither_demo.py --unlimited --record --teacher --no-guardrails
-
-  # weak: whatever Jev chose
-  uv run --env-file .env python examples/slither_demo.py --unlimited --record --no-guardrails
+  uv run --env-file .env python examples/slither_demo.py --model jev --unlimited --record --teacher --no-guardrails
 """
 
 import argparse
@@ -43,6 +43,7 @@ from jev_ultrafast.games.slither import (  # noqa: E402
 from jev_ultrafast.games.trajectory import TrajectoryLogger  # noqa: E402
 
 UNLIMITED_STEPS = 10**9
+DEFAULT_KEV_URL = "http://127.0.0.1:8009/v1/systemone"
 
 DEFAULT_GOAL = (
     "Play slither.io. Type nickname '{nickname}', click Play, WAIT until Aim/Boost appear, "
@@ -65,6 +66,25 @@ def load_env():
             os.environ.setdefault(key.strip(), value.strip().strip("'").strip('"'))
 
 
+def configure_decision_backend(model: str, *, kev_url: str) -> str:
+    """Point Agent decisions at hosted Jev (OpenRouter) or a local Kev System One server."""
+    if model == "kev":
+        os.environ["TYPESAFE_BASE_URL"] = kev_url
+        os.environ.setdefault("TYPESAFE_API_KEY", "local")
+        os.environ.setdefault("TYPESAFE_MODEL", "kev-latest")
+        return f"local Kev @ {kev_url}"
+    if model == "jev":
+        # Force hosted Decisions path even if a leftover local BASE_URL is in the shell.
+        os.environ.pop("TYPESAFE_BASE_URL", None)
+        if not (os.environ.get("OPENROUTER_API_KEY") or os.environ.get("TYPESAFE_API_KEY")):
+            raise SystemExit(
+                "--model jev needs OPENROUTER_API_KEY (or TYPESAFE_API_KEY) in the environment / .env"
+            )
+        os.environ.setdefault("TYPESAFE_MODEL", "~typesafe/jev-latest")
+        return "hosted Jev via OpenRouter Decisions"
+    raise SystemExit(f"Unknown --model {model!r} (use kev or jev)")
+
+
 def default_out_path(prefix: str = "run") -> Path:
     return Path("artifacts/slither-data") / (
         f"{prefix}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.jsonl"
@@ -72,7 +92,7 @@ def default_out_path(prefix: str = "run") -> Path:
 
 
 def run_human_recording(args) -> None:
-    """You steer in Chrome; we sample sensors + your mouse aim into JSONL. No Jev calls."""
+    """You steer in Chrome; we sample sensors + your mouse aim into JSONL. No Jev/Kev calls."""
     os.environ["SLITHER_GUARDRAILS"] = "0"
     out = Path(args.out) if args.out else default_out_path("human")
     logger = TrajectoryLogger(out, source="slither-human")
@@ -144,7 +164,18 @@ def run_human_recording(args) -> None:
         browser.close()
 
 
-parser = argparse.ArgumentParser(description="Run / record slither.io with Jev or human play.")
+parser = argparse.ArgumentParser(description="Run / record slither.io with Jev, Kev, or human play.")
+parser.add_argument(
+    "--model",
+    choices=("jev", "kev"),
+    default="jev",
+    help="Decision backend: hosted Jev (OpenRouter) or local Kev System One server (default: jev).",
+)
+parser.add_argument(
+    "--kev-url",
+    default=DEFAULT_KEV_URL,
+    help=f"System One URL when --model kev (default: {DEFAULT_KEV_URL}).",
+)
 parser.add_argument("--max-actions", type=int, default=120)
 parser.add_argument("--unlimited", action="store_true")
 parser.add_argument("--nickname", default="JevBot")
@@ -152,7 +183,7 @@ parser.add_argument("--goal", default=None)
 parser.add_argument(
     "--human",
     action="store_true",
-    help="You play in Chrome; record mouse aim/boost as gold Kev labels (no Jev, no API key).",
+    help="You play in Chrome; record mouse aim/boost as gold Kev labels (no API / no local server).",
 )
 parser.add_argument(
     "--hz",
@@ -168,7 +199,7 @@ parser.add_argument(
 parser.add_argument(
     "--teacher",
     action="store_true",
-    help="In-game: execute sensor recommended_dir instead of Jev (silver labels).",
+    help="In-game: execute sensor recommended_dir instead of the decision model (silver labels).",
 )
 parser.add_argument(
     "--guardrails",
@@ -190,6 +221,7 @@ if args.human:
     run_human_recording(args)
     sys.exit(0)
 
+backend = configure_decision_backend(args.model, kev_url=args.kev_url)
 os.environ["SLITHER_GUARDRAILS"] = "1" if args.guardrails else "0"
 
 if args.unlimited or args.max_actions == 0:
@@ -203,6 +235,7 @@ agent_mod.MAX_STEPS = questions_mod.MAX_STEPS
 
 goal = (args.goal or DEFAULT_GOAL).format(nickname=args.nickname)
 print(f"Goal: {goal}")
+print(f"Model: {args.model} ({backend})")
 print(f"Guardrails: {'on' if args.guardrails else 'off'}")
 if args.teacher:
     print("Teacher mode: in-game AIM follows recommended_dir (for training labels).")
@@ -210,7 +243,7 @@ if args.teacher:
 logger = None
 if args.record:
     out = Path(args.out) if args.out else default_out_path("run")
-    source = "slither-teacher" if args.teacher else "slither-agent"
+    source = "slither-teacher" if args.teacher else f"slither-{args.model}"
     logger = TrajectoryLogger(out, source=source)
     print(f"Recording to {out}\n")
 else:
@@ -328,7 +361,7 @@ with Agent("http://slither.io/", goal) as agent:
                 has_aim = any(a.get("kind") == "pointer" for a in actions)
                 play_again = any("Play Again" in str(a.get("label") or "") for a in actions)
                 if has_aim and not play_again and len(state["history"]) < max_actions:
-                    print("  (Jev wanted to stop; demo keep-going while Aim controls remain)")
+                    print("  (model wanted to stop; demo keep-going while Aim controls remain)")
                     agent.state["status"] = "ready"
                     agent.state["decision"] = None
                     continue
