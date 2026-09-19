@@ -75,5 +75,5 @@ uv run --extra serve python -m kev.serve --run runs/browser-agent-ft-v1 --port 8
 Then from `browser-agent/jev-ultrafast`:
 
 ```bash
-uv run --env-file .env python examples/flights.py --model kev
+uv run python examples/flights.py --model kev
 ```

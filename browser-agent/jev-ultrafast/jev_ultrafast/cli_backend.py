@@ -36,4 +36,13 @@ def add_model_arguments(parser: argparse.ArgumentParser) -> None:
 
 def apply_model_arguments(args: argparse.Namespace) -> str:
     """Configure env from --model / --kev-url. Returns a short label for logging."""
-    return configure_decision_backend(args.model, kev_url=args.kev_url)
+    label = configure_decision_backend(args.model, kev_url=args.kev_url)
+    if not os.environ.get("TEXT_MODEL_API_KEY"):
+        print(
+            "Note: TYPE_TEXT (typing into fields) still needs TEXT_MODEL_API_KEY in .env — "
+            "that is a small helper LLM, not the Kev/Jev decision model. "
+            "Copy jev-ultrafast/.env.example → .env and fill TEXT_MODEL_API_KEY "
+            "(OpenRouter key is fine). --model kev does not need OPENROUTER_API_KEY.",
+            flush=True,
+        )
+    return label

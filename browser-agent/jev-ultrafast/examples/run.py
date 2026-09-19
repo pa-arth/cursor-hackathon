@@ -1,5 +1,5 @@
-"""uv run --env-file .env python examples/run.py --model jev --url URL --goal 'A narrow goal'
-uv run --env-file .env python examples/run.py --model kev --url URL --goal 'A narrow goal'
+"""uv run python examples/run.py --model jev --url URL --goal 'A narrow goal'
+uv run python examples/run.py --model kev --url URL --goal 'A narrow goal'
 """
 
 import argparse

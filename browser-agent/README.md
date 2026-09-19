@@ -18,7 +18,9 @@ Capture collector port: **8787**.
 ```bash
 cd browser-agent/jev-ultrafast
 uv sync
-cp .env.example .env   # OPENROUTER_API_KEY + TEXT_MODEL_API_KEY
+cp .env.example .env
+# TEXT_MODEL_API_KEY — typing into fields (needed for --model kev and jev)
+# OPENROUTER_API_KEY — only --model jev decisions
 
 cd ../kev
 uv sync
@@ -50,7 +52,7 @@ Episodes also live in `browser-capture/data/episodes/` (gitignored per-run folde
 ```bash
 # A) Hosted Jev
 cd browser-agent/jev-ultrafast
-uv run --env-file .env python examples/flights.py --model jev
+uv run python examples/flights.py --model jev
 ```
 
 ```bash
@@ -64,7 +66,7 @@ uv run --extra serve python -m kev.serve --run jaredpalmer/kev-0.5b --port 8010
 
 ```bash
 cd browser-agent/jev-ultrafast
-uv run --env-file .env python examples/flights.py --model kev
+uv run python examples/flights.py --model kev
 # optional: --kev-url http://127.0.0.1:8010/v1/systemone
 ```
 

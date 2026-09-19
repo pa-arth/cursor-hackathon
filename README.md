@@ -17,10 +17,12 @@ Flights / any URL+goal. Compare backends, collect gold, fine-tune, serve.
 
 ```bash
 cd browser-agent/jev-ultrafast
-uv sync && cp .env.example .env   # OPENROUTER_API_KEY + TEXT_MODEL_API_KEY
-uv run --env-file .env python examples/flights.py --model jev
-# after teammate serves FT Kev on :8010:
-uv run --env-file .env python examples/flights.py --model kev
+uv sync && cp .env.example .env
+# TEXT_MODEL_API_KEY = typing helper (needed for both jev and kev)
+# OPENROUTER_API_KEY = hosted Jev decisions only
+uv run python examples/flights.py --model jev
+# Kev serve on :8010, then:
+uv run python examples/flights.py --model kev
 ```
 
 Full loop (capture → convert → train → serve) is in [`browser-agent/README.md`](browser-agent/README.md).

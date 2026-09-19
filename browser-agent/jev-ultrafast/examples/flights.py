@@ -1,9 +1,9 @@
 """Live Google Flights search. Never selects or books a flight.
 
-Compare backends:
-  uv run --env-file .env python examples/flights.py --model jev
-  uv run --env-file .env python examples/flights.py --model kev
-  # TODO(team): serve the browser-agent FT checkpoint, then --model kev (default :8010)
+Compare backends (script loads .env itself if present — do not pass uv --env-file unless the file exists):
+  cp .env.example .env   # TEXT_MODEL_API_KEY required for typing; OPENROUTER only for --model jev
+  uv run python examples/flights.py --model jev
+  uv run python examples/flights.py --model kev   # local Kev on :8010; still needs TEXT_MODEL for fills
 """
 
 import argparse
