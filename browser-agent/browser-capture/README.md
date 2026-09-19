@@ -1,8 +1,12 @@
 # Browser Capture
 
-Ambient, element-grounded trajectory capture for local browser-agent fine-tuning.
+Ambient, element-grounded trajectory capture for local **browser-agent** fine-tuning.
+
+Lives at `browser-agent/browser-capture/` (sibling of `jev-ultrafast/` and `kev/`).
 
 You browse normally. The Chrome extension maps clicks / fills / selects / scrolls onto the same indexed action table as [jev-ultrafast](../jev-ultrafast) (`snapshot.js`) and appends steps to a **local** collector. Intent defaults to **auto-suggest on Done** via your LLM API key (encrypted at rest).
+
+Collected data feeds the FT loop for `kev/runs/browser-agent-ft/` — it does **not** overwrite harness or Kev source.
 
 ## Privacy
 
@@ -13,18 +17,21 @@ You browse normally. The Chrome extension maps clicks / fills / selects / scroll
 ## Layout
 
 ```text
-browser-capture/
-  extension/                 Chrome MV3 side panel + content script
-  collector/server.py        Loopback HTTP
-  collector/credential_store.py
-  data/episodes/             meta.json + steps.jsonl per episode
-  data/secrets/              encrypted key / settings (local only)
+browser-agent/
+  jev-ultrafast/             # run / compare with --model jev|kev
+  kev/                       # train + serve; drop FT weights in runs/browser-agent-ft/
+  browser-capture/           # this package
+    extension/               # Chrome MV3 side panel + content script
+    collector/server.py      # Loopback HTTP (:8787)
+    collector/credential_store.py
+    data/episodes/           # meta.json + steps.jsonl per episode (local only)
+    data/secrets/            # encrypted key / settings (local only)
 ```
 
 ## 1. Start the collector
 
 ```bash
-cd browser-capture
+cd browser-agent/browser-capture
 python3 collector/server.py
 ```
 
@@ -40,7 +47,7 @@ Health: [http://127.0.0.1:8787/health](http://127.0.0.1:8787/health)
 
 1. Chrome → `chrome://extensions`
 2. Enable **Developer mode**
-3. **Load unpacked** → `browser-capture/extension`
+3. **Load unpacked** → `browser-agent/browser-capture/extension`
 4. Open the side panel → **LLM settings** → paste API key → **Save key**
 
 Default endpoint is OpenRouter (`https://openrouter.ai/api/v1` + `openai/gpt-4o-mini`). Any OpenAI-compatible base URL works.
@@ -97,3 +104,5 @@ Each `examples[]` row is one supervised step:
 - `completion.action_id` / `kind` / `text` (for fills)
 
 Query flags on `/v1/dataset`: `mapped_only` (default true), `success_only` (default false), `complete_only` (default true).
+
+Export → convert to a Kev suite → train into `../kev/runs/browser-agent-ft/` (see parent [`../README.md`](../README.md)).
