@@ -4,7 +4,7 @@ Shared hackathon workspace.
 
 | path | project |
 |---|---|
-| [`slitherio/`](slitherio/) | Slither.io: sensors, human gold FT, hosted Jev vs local Kev (`:8009`) |
-| [`browser-agent/`](browser-agent/) | Stock jev-ultrafast (flights / generic goals): hosted Jev vs local Kev (`:8010`) |
+| [`slitherio/`](slitherio/) | Slither.io harness + Kev (`runs/slither-ft-v2`, serve `:8009`) |
+| [`browser-agent/`](browser-agent/) | Flights/generic harness + full second Kev (`runs/browser-agent-ft`, serve `:8010`) |
 
-Each folder has its own README.
+Each project is self-contained: `jev-ultrafast/` + `kev/` + README.

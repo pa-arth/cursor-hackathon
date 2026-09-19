@@ -1,42 +1,60 @@
 # browser-agent
 
-Stock [jev-ultrafast](https://github.com/browser-use/jev-ultrafast) (upstream `main`) with a thin `--model jev|kev` switch so you can compare **hosted Jev** vs a **local fine-tuned Kev** on the built-in flights / generic browser tasks.
+Stock browser harness + a **full second copy of Kev**, separate from [`../slitherio/`](../slitherio/).
 
-This is **not** the slither stack — that lives in [`../slitherio/`](../slitherio/). No game sensors or human-recording code here.
+| path | role |
+|---|---|
+| `jev-ultrafast/` | Upstream jev-ultrafast (`main`) + `--model jev\|kev` switch (flights / generic goals) |
+| `kev/` | Full Kev train/serve tree for **this** track |
+| `kev/runs/browser-agent-ft/` | **Drop the FT checkpoint here** (empty until teammate pushes weights) |
+
+Default local Kev port for this track: **8010** (slitherio uses **8009**).
 
 ## Setup
 
 ```bash
-cd browser-agent
+cd browser-agent/jev-ultrafast
 uv sync
-cp .env.example .env   # add OPENROUTER_API_KEY (+ TEXT_MODEL_API_KEY for typing)
+cp .env.example .env   # OPENROUTER_API_KEY + TEXT_MODEL_API_KEY
+
+cd ../kev
+uv sync
+uv sync --extra serve
 ```
 
-## Run flights (compare)
+## Compare: hosted Jev vs local Kev
 
 ```bash
-# Hosted Jev (OpenRouter Decisions)
+# A) Hosted Jev
+cd browser-agent/jev-ultrafast
 uv run --env-file .env python examples/flights.py --model jev
-
-# Local Kev — teammate serves System One first (default :8010)
-# TODO(team): document the exact `kev.serve --run …` once the FT checkpoint is in this folder
-uv run --env-file .env python examples/flights.py --model kev
-# or:  --model kev --kev-url http://127.0.0.1:8010/v1/systemone
 ```
-
-Same flags on:
 
 ```bash
-uv run --env-file .env python examples/run.py --model jev --url URL --goal '…'
-uv run --env-file .env jev --model jev    # inspector UI
+# B) Local FT Kev — after weights are in kev/runs/browser-agent-ft/
+cd browser-agent/kev
+uv run --extra serve python -m kev.serve --run runs/browser-agent-ft --port 8010
 ```
 
-## Teammate checklist (when the second FT model lands)
+```bash
+cd browser-agent/jev-ultrafast
+uv run --env-file .env python examples/flights.py --model kev
+# optional: --kev-url http://127.0.0.1:8010/v1/systemone
+```
 
-Update these so defaults match the real server:
+Same `--model` / `--kev-url` flags on `examples/run.py` and `uv run jev`.
 
-1. Drop / document the checkpoint path (e.g. `runs/browser-agent-ft/`).
-2. `DEFAULT_KEV_URL` in `jev_ultrafast/model.py` (and comments in `.env.example` / this README).
-3. Serve command in this README (`kev.serve --run … --port 8010`).
+## Teammate: dropping the model
 
-Any System One URL works with `--kev-url` (even slither’s `:8009`); this track’s default stays `:8010` to avoid collisions.
+Put the checkpoint files in:
+
+```text
+browser-agent/kev/runs/browser-agent-ft/
+```
+
+Expected files (same as a normal Kev `--out` run): `adapter_model.safetensors`, `adapter_config.json`, `head.pt`, tokenizer files, etc. See `kev/runs/browser-agent-ft/README.md`.
+
+Then update defaults if the port/path changes:
+
+- `jev-ultrafast/jev_ultrafast/model.py` → `DEFAULT_KEV_URL`
+- comments in `jev-ultrafast/.env.example` and this README

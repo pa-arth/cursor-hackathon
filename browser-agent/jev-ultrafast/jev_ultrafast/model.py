@@ -12,18 +12,17 @@ from .questions import NEXT_ACTION, TARGET, TEXT_VALUE
 CLIENT = httpx.Client(http2=True, timeout=25)
 
 # Default local Kev System One endpoint for --model kev.
-# TODO(team): when the flights/browser-agent FT checkpoint is pushed and served, confirm this
-# port/URL (and update browser-agent/README.md). Slither uses :8009; keep this track on :8010
-# unless you intentionally point --kev-url at another server.
+# TODO(team): when weights land in ../kev/runs/browser-agent-ft/, keep this port in sync with
+# `kev.serve --run runs/browser-agent-ft --port 8010` (documented in browser-agent/README.md).
+# Slitherio uses :8009; this track stays on :8010 unless you pass --kev-url.
 DEFAULT_KEV_URL = "http://127.0.0.1:8010/v1/systemone"
 
 
 def configure_decision_backend(model: str, *, kev_url: str = DEFAULT_KEV_URL) -> str:
     """Point choose() at hosted Jev (OpenRouter) or a local Kev System One server.
 
-    TODO(team): after the second FT Kev lands in this repo, document the serve command + default
-    --kev-url here and in README. Any System One-compatible server works (including the slither
-    one on :8009) — we just won't use that for this track.
+    TODO(team): after browser-agent-ft is pushed under kev/runs/browser-agent-ft/, confirm the
+    serve command in browser-agent/README.md. Any System One URL works via --kev-url.
     """
     if model == "kev":
         os.environ["TYPESAFE_BASE_URL"] = kev_url
