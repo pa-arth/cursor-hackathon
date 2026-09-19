@@ -102,12 +102,7 @@ evals/public-pool-v6/train.jsonl
 evals/public-pool-v4/train.jsonl
 evals/v7/decision-v7/train.jsonl
 
-# --- browser-agent: ship / accept FT weights here ---
+# --- browser-agent: accept FT weights here (must be last) ---
 !runs/browser-agent-ft/
 !runs/browser-agent-ft/**
 !runs/browser-agent-ft/README.md
-
-# --- hackathon override (must be last): ship slither FT weights ---
-!runs/slither-ft-v2/
-!runs/slither-ft-v2/**
-!runs/slither-ft-v2-train.log
