@@ -205,3 +205,34 @@ button.linkish {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+.settings {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+}
+
+.settings summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.privacy,
+.hint {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 8px 0 10px;
+}
+
+.actions.tight {
+  margin-top: 4px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.status-row {
+  flex-wrap: wrap;
+}
+

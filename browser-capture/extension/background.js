@@ -5,10 +5,12 @@ const defaultState = () => ({
   paused: false,
   episodeId: null,
   intent: "",
+  intentSource: null,
   success: null,
   stepCount: 0,
   allowlist: [],
   collectorOk: null,
+  apiKeyConfigured: null,
   lastError: null,
 });
 
@@ -25,8 +27,22 @@ async function postJSON(path, body) {
   const res = await fetch(`${COLLECTOR}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body ?? {}),
   });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function deleteJSON(path) {
+  const res = await fetch(`${COLLECTOR}${path}`, { method: "DELETE" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function getJSON(path) {
+  const res = await fetch(`${COLLECTOR}${path}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
@@ -88,10 +104,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     if (msg?.type === "capture:command") {
       const state = await loadState();
+      let settings = null;
       try {
         if (msg.command === "start") {
           const intent = String(msg.intent || "").trim();
-          if (!intent) throw new Error("intent required");
           const episodeId = newEpisodeId();
           let startUrl = null;
           const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -108,6 +124,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             paused: false,
             episodeId,
             intent,
+            intentSource: intent ? "human" : "pending",
             allowlist: msg.allowlist || [],
             stepCount: 0,
             success: null,
@@ -120,31 +137,55 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           state.paused = false;
         } else if (msg.command === "done") {
           if (!state.episodeId) throw new Error("no episode");
-          await postJSON(`/v1/episodes/${state.episodeId}/complete`, {
+          const result = await postJSON(`/v1/episodes/${state.episodeId}/complete`, {
             success: msg.success,
             notes: msg.notes || null,
+            intent: msg.intent || state.intent || "",
+            suggest_intent: msg.suggest_intent !== false,
           });
           Object.assign(state, {
             recording: false,
             paused: false,
             success: msg.success,
-            lastError: null,
+            intent: result.intent || state.intent || "",
+            intentSource: result.intent_source || null,
+            lastError: result.warning || null,
           });
         } else if (msg.command === "ping") {
-          const res = await fetch(`${COLLECTOR}/health`);
-          state.collectorOk = res.ok;
+          const res = await getJSON("/health");
+          state.collectorOk = !!res.ok;
+          state.apiKeyConfigured = !!res.api_key_configured;
+        } else if (msg.command === "loadSettings") {
+          settings = await getJSON("/v1/settings");
+          state.apiKeyConfigured = !!settings.configured;
+          state.collectorOk = true;
+        } else if (msg.command === "saveKey") {
+          settings = await postJSON("/v1/settings/api-key", {
+            api_key: msg.api_key,
+            base_url: msg.base_url,
+            model: msg.model,
+          });
+          state.apiKeyConfigured = !!settings.configured;
+          state.collectorOk = true;
+          state.lastError = null;
+        } else if (msg.command === "clearKey") {
+          settings = await deleteJSON("/v1/settings/api-key");
+          state.apiKeyConfigured = false;
+          state.lastError = null;
         } else if (msg.command === "sync") {
           if (msg.allowlist) state.allowlist = msg.allowlist;
         }
         await saveState(state);
         await broadcastSession(state);
         chrome.runtime.sendMessage({ type: "capture:state", state }).catch(() => {});
-        sendResponse({ ok: true, state });
+        sendResponse({ ok: true, state, settings });
       } catch (err) {
         state.lastError = String(err.message || err);
-        state.collectorOk = false;
+        if (msg.command !== "saveKey" && msg.command !== "loadSettings") {
+          state.collectorOk = false;
+        }
         await saveState(state);
-        sendResponse({ ok: false, error: state.lastError, state });
+        sendResponse({ ok: false, error: state.lastError, state, settings });
       }
       return;
     }
@@ -159,7 +200,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true;
 });
 
-// Re-inject session into newly loaded tabs while recording.
 chrome.tabs.onUpdated.addListener(async (tabId, info) => {
   if (info.status !== "complete") return;
   const state = await loadState();

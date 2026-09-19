@@ -1,16 +1,33 @@
 #!/usr/bin/env python3
-"""Local trajectory collector: extension → JSONL episodes on disk."""
+"""Local trajectory collector: extension → JSONL episodes on disk.
+
+Episode data stays on this machine. The only optional outbound call is intent
+suggestion to the user-configured LLM endpoint (step summary only).
+"""
 
 from __future__ import annotations
 
 import json
 import os
 import re
+import sys
 import threading
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
+
+# Allow `python collector/server.py` to import sibling modules
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from credential_store import (  # noqa: E402
+    api_key_status,
+    clear_api_key,
+    get_api_key,
+    load_settings,
+    save_settings,
+    set_api_key,
+    suggest_intent,
+)
 
 HOST = os.environ.get("CAPTURE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("CAPTURE_PORT", "8787"))
@@ -44,9 +61,21 @@ def write_json(path: Path, payload) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
+def read_steps(episode_id: str) -> list:
+    path = episode_dir(episode_id) / "steps.jsonl"
+    if not path.exists():
+        return []
+    steps = []
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if line:
+            steps.append(json.loads(line))
+    return steps
+
+
 def cors(handler: BaseHTTPRequestHandler) -> None:
     handler.send_header("Access-Control-Allow-Origin", "*")
-    handler.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    handler.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
     handler.send_header("Access-Control-Allow-Headers", "Content-Type")
 
 
@@ -78,7 +107,17 @@ class Handler(BaseHTTPRequestHandler):
         if path in {"/", "/health"}:
             with _lock:
                 n = len(list(DATA_DIR.glob("*/meta.json"))) if DATA_DIR.exists() else 0
-            return self._json(200, {"ok": True, "episodes": n, "data_dir": str(DATA_DIR)})
+            status = api_key_status()
+            return self._json(
+                200,
+                {
+                    "ok": True,
+                    "episodes": n,
+                    "data_dir": str(DATA_DIR),
+                    "api_key_configured": status["configured"],
+                    "api_key_backend": status["backend"],
+                },
+            )
         if path == "/v1/episodes":
             with _lock:
                 episodes = []
@@ -86,6 +125,15 @@ class Handler(BaseHTTPRequestHandler):
                     for meta in sorted(DATA_DIR.glob("*/meta.json")):
                         episodes.append(read_json(meta, {}))
             return self._json(200, {"episodes": episodes})
+        if path == "/v1/settings":
+            return self._json(200, api_key_status())
+        return self._json(404, {"error": "not found"})
+
+    def do_DELETE(self) -> None:
+        path = urlparse(self.path).path
+        if path == "/v1/settings/api-key":
+            clear_api_key()
+            return self._json(200, api_key_status())
         return self._json(404, {"error": "not found"})
 
     def do_POST(self) -> None:
@@ -97,9 +145,15 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/v1/episodes":
             return self._start_episode(body)
+        if path == "/v1/settings":
+            return self._save_settings(body)
+        if path == "/v1/settings/api-key":
+            return self._save_api_key(body)
+        if path == "/v1/suggest-intent":
+            return self._suggest_from_body(body)
 
         parts = path.strip("/").split("/")
-        # /v1/episodes/{id}/steps | complete
+        # /v1/episodes/{id}/steps | complete | suggest-intent
         if len(parts) == 4 and parts[0] == "v1" and parts[1] == "episodes":
             episode_id = parts[2]
             if not EPISODE_ID.match(episode_id):
@@ -108,15 +162,72 @@ class Handler(BaseHTTPRequestHandler):
                 return self._append_step(episode_id, body)
             if parts[3] == "complete":
                 return self._complete(episode_id, body)
+            if parts[3] == "suggest-intent":
+                return self._suggest_episode(episode_id, body)
         return self._json(404, {"error": "not found"})
+
+    def _save_settings(self, body: dict) -> None:
+        settings = save_settings(base_url=body.get("base_url"), model=body.get("model"))
+        status = api_key_status()
+        status.update(settings)
+        return self._json(200, status)
+
+    def _save_api_key(self, body: dict) -> None:
+        try:
+            backend = set_api_key(str(body.get("api_key") or ""))
+            if body.get("base_url") is not None or body.get("model") is not None:
+                save_settings(base_url=body.get("base_url"), model=body.get("model"))
+        except Exception as exc:
+            return self._json(400, {"error": str(exc)})
+        status = api_key_status()
+        status["saved_backend"] = backend
+        return self._json(200, status)
+
+    def _suggest_from_body(self, body: dict) -> None:
+        try:
+            intent, meta = suggest_intent(body)
+        except Exception as exc:
+            return self._json(400, {"error": str(exc)})
+        return self._json(200, {"intent": intent, "meta": meta, "intent_source": "llm"})
+
+    def _suggest_episode(self, episode_id: str, body: dict) -> None:
+        folder = episode_dir(episode_id)
+        meta_path = folder / "meta.json"
+        with _lock:
+            if not meta_path.exists():
+                return self._json(404, {"error": "unknown episode"})
+            meta = read_json(meta_path, {})
+            steps = read_steps(episode_id)
+        summary = {
+            "start_url": meta.get("start_url"),
+            "success": body.get("success", meta.get("success")),
+            "steps": [
+                {
+                    "step": s.get("step"),
+                    "gesture": s.get("gesture"),
+                    "url": s.get("url"),
+                    "mapped": s.get("mapped"),
+                    "action": {
+                        "kind": (s.get("action") or {}).get("kind"),
+                        "label": (s.get("action") or {}).get("label"),
+                        "text": (s.get("action") or {}).get("text"),
+                    },
+                }
+                for s in steps
+                if s.get("mapped", True)
+            ],
+        }
+        try:
+            intent, llm_meta = suggest_intent(summary)
+        except Exception as exc:
+            return self._json(400, {"error": str(exc)})
+        return self._json(200, {"intent": intent, "meta": llm_meta, "intent_source": "llm"})
 
     def _start_episode(self, body: dict) -> None:
         episode_id = str(body.get("id") or "").strip()
         intent = str(body.get("intent") or "").strip()
         if not EPISODE_ID.match(episode_id):
             return self._json(400, {"error": "id required (8-64 alnum/_/-)"})
-        if not intent:
-            return self._json(400, {"error": "intent required"})
         folder = episode_dir(episode_id)
         with _lock:
             if (folder / "meta.json").exists():
@@ -124,6 +235,7 @@ class Handler(BaseHTTPRequestHandler):
             meta = {
                 "id": episode_id,
                 "intent": intent,
+                "intent_source": "human" if intent else "pending",
                 "source": body.get("source") or "human_extension",
                 "start_url": body.get("start_url"),
                 "allowlist": body.get("allowlist") or [],
@@ -165,9 +277,53 @@ class Handler(BaseHTTPRequestHandler):
     def _complete(self, episode_id: str, body: dict) -> None:
         folder = episode_dir(episode_id)
         meta_path = folder / "meta.json"
+        suggest = body.get("suggest_intent", True)
+        provided = str(body.get("intent") or "").strip()
+
         with _lock:
             if not meta_path.exists():
                 return self._json(404, {"error": "unknown episode"})
+            meta = read_json(meta_path, {})
+            if meta.get("status") != "recording":
+                return self._json(409, {"error": "episode already completed"})
+            steps = read_steps(episode_id)
+
+        intent = provided or str(meta.get("intent") or "").strip()
+        intent_source = meta.get("intent_source") or ("human" if intent else "pending")
+        suggest_error = None
+        llm_meta = None
+
+        if suggest and not intent:
+            summary = {
+                "start_url": meta.get("start_url"),
+                "success": body.get("success"),
+                "steps": [
+                    {
+                        "step": s.get("step"),
+                        "gesture": s.get("gesture"),
+                        "url": s.get("url"),
+                        "mapped": s.get("mapped"),
+                        "action": {
+                            "kind": (s.get("action") or {}).get("kind"),
+                            "label": (s.get("action") or {}).get("label"),
+                            "text": (s.get("action") or {}).get("text"),
+                        },
+                    }
+                    for s in steps
+                    if s.get("mapped", True)
+                ],
+            }
+            try:
+                intent, llm_meta = suggest_intent(summary)
+                intent_source = "llm"
+            except Exception as exc:
+                suggest_error = str(exc)
+                intent_source = "missing"
+
+        if provided:
+            intent_source = "human"
+
+        with _lock:
             meta = read_json(meta_path, {})
             if meta.get("status") != "recording":
                 return self._json(409, {"error": "episode already completed"})
@@ -175,8 +331,18 @@ class Handler(BaseHTTPRequestHandler):
             meta["success"] = body.get("success")
             meta["ended_at"] = utc_now()
             meta["notes"] = body.get("notes")
+            meta["intent"] = intent
+            meta["intent_source"] = intent_source
+            if llm_meta:
+                meta["intent_model"] = llm_meta
+            if suggest_error:
+                meta["intent_suggest_error"] = suggest_error
             write_json(meta_path, meta)
-        return self._json(200, meta)
+
+        out = dict(meta)
+        if suggest_error and not intent:
+            out["warning"] = suggest_error
+        return self._json(200, out)
 
 
 def main() -> None:
@@ -184,6 +350,7 @@ def main() -> None:
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"[capture] listening on http://{HOST}:{PORT}", flush=True)
     print(f"[capture] writing episodes to {DATA_DIR}", flush=True)
+    print(f"[capture] api key configured: {bool(get_api_key())}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
