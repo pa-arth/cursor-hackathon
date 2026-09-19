@@ -72,6 +72,10 @@ Each `steps.jsonl` line:
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/health` | Liveness + key configured? |
+| `GET` | `/v1/dataset` | **Training export**: episodes + per-step examples |
+| `GET` | `/v1/examples?success_only=true` | Flat training examples only |
+| `GET` | `/v1/episodes?include_steps=true` | All episodes with raw steps |
+| `GET` | `/v1/episodes/:id` | One episode + steps |
 | `GET` | `/v1/settings` | Key status (never returns the raw key) |
 | `POST` | `/v1/settings/api-key` | Save encrypted key + optional model/URL |
 | `DELETE` | `/v1/settings/api-key` | Clear key |
@@ -79,3 +83,17 @@ Each `steps.jsonl` line:
 | `POST` | `/v1/episodes/:id/steps` | Append step |
 | `POST` | `/v1/episodes/:id/complete` | Seal; auto-suggest intent if empty |
 | `POST` | `/v1/episodes/:id/suggest-intent` | Suggest without sealing |
+
+### Training export
+
+```bash
+curl -s http://127.0.0.1:8787/v1/dataset | python3 -m json.tool | less
+curl -s 'http://127.0.0.1:8787/v1/examples?success_only=true'
+```
+
+Each `examples[]` row is one supervised step:
+
+- `prompt.goal` + `prompt.action_space` (indexed elements) + `prompt.history`
+- `completion.action_id` / `kind` / `text` (for fills)
+
+Query flags on `/v1/dataset`: `mapped_only` (default true), `success_only` (default false), `complete_only` (default true).

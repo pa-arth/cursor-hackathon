@@ -15,7 +15,8 @@ import threading
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
+
 
 # Allow `python collector/server.py` to import sibling modules
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -73,10 +74,197 @@ def read_steps(episode_id: str) -> list:
     return steps
 
 
+def list_episode_ids() -> list[str]:
+    if not DATA_DIR.exists():
+        return []
+    ids = []
+    for meta in sorted(DATA_DIR.glob("*/meta.json")):
+        ids.append(meta.parent.name)
+    return ids
+
+
+def load_episode(episode_id: str) -> dict | None:
+    meta_path = episode_dir(episode_id) / "meta.json"
+    if not meta_path.exists():
+        return None
+    meta = read_json(meta_path, {})
+    steps = read_steps(episode_id)
+    return {"meta": meta, "steps": steps}
+
+
+def format_action_space(actions: list | None) -> str:
+    """Compact indexed table matching jev-style training prompts."""
+    lines = []
+    for action in actions or []:
+        kind = action.get("kind") or "?"
+        label = (action.get("label") or "").strip()
+        value = action.get("value")
+        aid = action.get("id") or "?"
+        role = action.get("role") or ""
+        extra = ""
+        if value not in (None, ""):
+            extra = f" · {value}"
+        role_bit = f"{role:10}" if role else " " * 10
+        lines.append(f"[{aid}] {kind:6} {role_bit} {label}{extra}".rstrip())
+    return "\n".join(lines)
+
+
+def slim_action(action: dict | None) -> dict | None:
+    if not action:
+        return None
+    out = {
+        "id": action.get("id"),
+        "kind": action.get("kind"),
+        "label": action.get("label"),
+        "node": action.get("node"),
+        "role": action.get("role"),
+    }
+    if action.get("text") is not None:
+        out["text"] = action.get("text")
+    if action.get("value") not in (None, ""):
+        out["value"] = action.get("value")
+    if action.get("delta") is not None:
+        out["delta"] = action.get("delta")
+    return out
+
+
+def training_observation(observation: dict | None) -> dict | None:
+    if not observation:
+        return None
+    actions = observation.get("actions") or []
+    return {
+        "url": observation.get("url"),
+        "title": observation.get("title"),
+        "text": observation.get("text") or "",
+        "scroll": observation.get("scroll"),
+        "w": observation.get("w"),
+        "h": observation.get("h"),
+        "omitted_actions": observation.get("omitted_actions") or 0,
+        "actions": actions,
+        "action_space": format_action_space(actions),
+    }
+
+
+def build_training_example(meta: dict, step: dict, history: list) -> dict | None:
+    """One supervised row: goal + observation (indexed elements) + discrete action."""
+    if not step.get("mapped", True):
+        return None
+    action = slim_action(step.get("action"))
+    if not action or not action.get("id") or not action.get("kind"):
+        return None
+    observation = training_observation(step.get("observation"))
+    if not observation or not observation.get("actions"):
+        return None
+    # Target must exist in the observed action space (aligns train ↔ serve).
+    ids = {a.get("id") for a in observation["actions"]}
+    if action["id"] not in ids:
+        return None
+    return {
+        "episode_id": meta.get("id"),
+        "intent": meta.get("intent") or "",
+        "intent_source": meta.get("intent_source"),
+        "success": meta.get("success"),
+        "step": step.get("step"),
+        "ts": step.get("ts"),
+        "gesture": step.get("gesture"),
+        "history": history,
+        "observation": observation,
+        "action": action,
+        # Ready-to-pack SFT fields for browser / computer-use policies.
+        "prompt": {
+            "goal": meta.get("intent") or "",
+            "url": observation.get("url"),
+            "page_text": observation.get("text"),
+            "action_space": observation.get("action_space"),
+            "history": history,
+        },
+        "completion": {
+            "action_id": action["id"],
+            "kind": action["kind"],
+            "text": action.get("text"),
+        },
+    }
+
+
+def build_dataset(*, mapped_only: bool = True, success_only: bool = False, complete_only: bool = True) -> dict:
+    episodes = []
+    examples = []
+    skipped = {"unmapped": 0, "incomplete": 0, "unsuccessful": 0, "invalid": 0}
+
+    for episode_id in list_episode_ids():
+        loaded = load_episode(episode_id)
+        if not loaded:
+            continue
+        meta = loaded["meta"]
+        steps = loaded["steps"]
+
+        if complete_only and meta.get("status") != "complete":
+            skipped["incomplete"] += 1
+            continue
+        if success_only and meta.get("success") is not True:
+            skipped["unsuccessful"] += 1
+            continue
+
+        history = []
+        episode_examples = []
+        for step in steps:
+            if mapped_only and not step.get("mapped", True):
+                skipped["unmapped"] += 1
+                continue
+            example = build_training_example(meta, step, list(history))
+            if not example:
+                skipped["invalid"] += 1
+                continue
+            episode_examples.append(example)
+            examples.append(example)
+            history.append(
+                {
+                    "step": example["step"],
+                    "kind": example["action"]["kind"],
+                    "id": example["action"]["id"],
+                    "label": example["action"].get("label"),
+                    "text": example["action"].get("text"),
+                }
+            )
+
+        episodes.append(
+            {
+                **meta,
+                "steps": steps,
+                "training_examples": episode_examples,
+                "training_example_count": len(episode_examples),
+            }
+        )
+
+    return {
+        "schema": "browser-capture.element_grounded.v1",
+        "description": (
+            "Element-grounded browser trajectories for local fine-tuning. "
+            "Each training example is (goal, indexed action_space, history) → "
+            "(action_id, kind, text). Prefer mapped steps from successful episodes."
+        ),
+        "counts": {
+            "episodes": len(episodes),
+            "raw_steps": sum(len(e.get("steps") or []) for e in episodes),
+            "training_examples": len(examples),
+            "skipped": skipped,
+        },
+        "episodes": episodes,
+        "examples": examples,
+    }
+
+
 def cors(handler: BaseHTTPRequestHandler) -> None:
     handler.send_header("Access-Control-Allow-Origin", "*")
     handler.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
     handler.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+
+def query_flag(qs: dict, name: str, default: bool) -> bool:
+    values = qs.get(name)
+    if not values:
+        return default
+    return str(values[0]).lower() in {"1", "true", "yes", "on"}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -103,7 +291,10 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
+        qs = parse_qs(parsed.query)
+
         if path in {"/", "/health"}:
             with _lock:
                 n = len(list(DATA_DIR.glob("*/meta.json"))) if DATA_DIR.exists() else 0
@@ -116,17 +307,59 @@ class Handler(BaseHTTPRequestHandler):
                     "data_dir": str(DATA_DIR),
                     "api_key_configured": status["configured"],
                     "api_key_backend": status["backend"],
+                    "dataset": "http://127.0.0.1:8787/v1/dataset",
+                },
+            )
+        if path == "/v1/dataset":
+            with _lock:
+                payload = build_dataset(
+                    mapped_only=query_flag(qs, "mapped_only", True),
+                    success_only=query_flag(qs, "success_only", False),
+                    complete_only=query_flag(qs, "complete_only", True),
+                )
+            return self._json(200, payload)
+        if path == "/v1/examples":
+            with _lock:
+                payload = build_dataset(
+                    mapped_only=query_flag(qs, "mapped_only", True),
+                    success_only=query_flag(qs, "success_only", True),
+                    complete_only=query_flag(qs, "complete_only", True),
+                )
+            return self._json(
+                200,
+                {
+                    "schema": payload["schema"],
+                    "counts": payload["counts"],
+                    "examples": payload["examples"],
                 },
             )
         if path == "/v1/episodes":
+            include_steps = query_flag(qs, "include_steps", False)
             with _lock:
                 episodes = []
-                if DATA_DIR.exists():
-                    for meta in sorted(DATA_DIR.glob("*/meta.json")):
-                        episodes.append(read_json(meta, {}))
+                for episode_id in list_episode_ids():
+                    loaded = load_episode(episode_id)
+                    if not loaded:
+                        continue
+                    if include_steps:
+                        episodes.append({**loaded["meta"], "steps": loaded["steps"]})
+                    else:
+                        episodes.append(loaded["meta"])
             return self._json(200, {"episodes": episodes})
         if path == "/v1/settings":
             return self._json(200, api_key_status())
+
+        parts = path.strip("/").split("/")
+        if len(parts) == 3 and parts[0] == "v1" and parts[1] == "episodes":
+            episode_id = parts[2]
+            if not EPISODE_ID.match(episode_id):
+                return self._json(400, {"error": "invalid episode id"})
+            with _lock:
+                loaded = load_episode(episode_id)
+            if not loaded:
+                return self._json(404, {"error": "unknown episode"})
+            return self._json(200, {**loaded["meta"], "steps": loaded["steps"]})
+
         return self._json(404, {"error": "not found"})
 
     def do_DELETE(self) -> None:
