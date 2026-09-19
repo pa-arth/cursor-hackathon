@@ -24,7 +24,27 @@ uv sync
 uv sync --extra serve
 ```
 
-## Capture real-user data (gold)
+## Fine-tuning data (Kev)
+
+The trajectories used to fine-tune Kev for this track live in:
+
+```text
+browser-agent/browser-capture/data/episodes/<episode_id>/
+  meta.json      # intent, success, timestamps
+  steps.jsonl    # one observation → action per line
+```
+
+Export the training rows with the local collector:
+
+```bash
+cd browser-agent/browser-capture
+python3 collector/server.py
+curl -s http://127.0.0.1:8787/v1/dataset
+```
+
+That dataset is what feeds `kev/runs/browser-agent-ft/`.
+
+## Capture more real-user data (gold)
 
 See [`browser-capture/README.md`](browser-capture/README.md).
 
@@ -35,7 +55,7 @@ python3 collector/server.py
 curl -s http://127.0.0.1:8787/v1/dataset
 ```
 
-Episodes stay in `browser-capture/data/episodes/` (gitignored). That export is what you turn into a Kev training suite for `kev/runs/browser-agent-ft/`.
+New episodes also land under `browser-capture/data/episodes/` (additional local runs may be gitignored).
 
 ## Compare: hosted Jev vs local Kev
 
